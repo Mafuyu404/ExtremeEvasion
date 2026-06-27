@@ -55,6 +55,10 @@ public class EvasionEchoEntity extends ArmorStand {
             return true;
         }
 
+        if (isOwnerSource(source, owner)) {
+            return false;
+        }
+
         if (!isValidTriggerSource(source, owner)) {
             return false;
         }
@@ -133,6 +137,10 @@ public class EvasionEchoEntity extends ArmorStand {
             return false;
         }
 
-        return attacker != owner && direct != owner;
+        return !isOwnerSource(source, owner);
+    }
+
+    private boolean isOwnerSource(DamageSource source, ServerPlayer owner) {
+        return source.getEntity() == owner || source.getDirectEntity() == owner;
     }
 }

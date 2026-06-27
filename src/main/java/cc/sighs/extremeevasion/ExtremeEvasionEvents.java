@@ -1,16 +1,21 @@
 package cc.sighs.extremeevasion;
 
 import cc.sighs.extremeevasion.entity.EvasionEchoEntity;
+import cc.sighs.extremeevasion.network.ExtremeEvasionNetwork;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.damagesource.CombatRules;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
+import net.minecraftforge.event.entity.player.CriticalHitEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -20,15 +25,15 @@ public final class ExtremeEvasionEvents {
     private static final String ROLL_TAG = "roll";
     private static final String DATA_ROOT = ExtremeEvasion.MODID;
     private static final String DATA_ACTIVE = "extreme_window_active";
-    private static final String DATA_END_TICK = "extreme_window_end_tick";
     private static final String DATA_SUCCESS = "extreme_window_success";
     private static final String DATA_START_X = "extreme_window_start_x";
     private static final String DATA_START_Y = "extreme_window_start_y";
     private static final String DATA_START_Z = "extreme_window_start_z";
     private static final String DATA_ECHO_UUID = "extreme_window_echo_uuid";
-    private static final int EXTREME_EVASION_WINDOW_TICKS = 6;
-    private static final int STRENGTH_DURATION_TICKS = 100;
-    private static final int STRENGTH_AMPLIFIER = 0;
+    private static final String DATA_ROLL_CONSUMED = "extreme_roll_consumed";
+    private static final String DATA_COUNTER_ATTACK_END_TICK = "extreme_counter_attack_end_tick";
+    private static final String DATA_COUNTER_ATTACK_ACTIVE = "extreme_counter_attack_active";
+    private static final String DATA_COUNTER_ATTACK_CHARGES = "extreme_counter_attack_charges";
 
     private ExtremeEvasionEvents() {
     }
@@ -43,6 +48,18 @@ public final class ExtremeEvasionEvents {
         CompoundTag data = getData(player);
         boolean rolling = player.getTags().contains(ROLL_TAG);
         boolean active = data.getBoolean(DATA_ACTIVE);
+        clearExpiredCounterAttack(player, data);
+
+        if (!rolling) {
+            data.remove(DATA_ROLL_CONSUMED);
+        }
+
+        if (data.getBoolean(DATA_ROLL_CONSUMED)) {
+            if (active) {
+                endWindow(player, data);
+            }
+            return;
+        }
 
         if (rolling && !active) {
             startWindow(player, data);
@@ -53,9 +70,23 @@ public final class ExtremeEvasionEvents {
             return;
         }
 
-        long gameTime = player.level().getGameTime();
-        if (!rolling || gameTime > data.getLong(DATA_END_TICK) || data.getBoolean(DATA_SUCCESS)) {
+        if (!rolling || data.getBoolean(DATA_SUCCESS)) {
             endWindow(player, data);
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onLivingAttack(LivingAttackEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) {
+            return;
+        }
+
+        if (!isMobDirectAttack(event.getSource())) {
+            return;
+        }
+
+        if (tryTriggerExtremeEvasion(player)) {
+            event.setCanceled(true);
         }
     }
 
@@ -65,22 +96,11 @@ public final class ExtremeEvasionEvents {
             return;
         }
 
-        if (!(event.getSource().getEntity() instanceof Mob attacker)) {
+        if (!isMobDirectAttack(event.getSource())) {
             return;
         }
 
-        if (event.getSource().getDirectEntity() != attacker) {
-            return;
-        }
-
-        CompoundTag data = getData(player);
-        if (!data.getBoolean(DATA_ACTIVE) || data.getBoolean(DATA_SUCCESS)) {
-            return;
-        }
-
-        long gameTime = player.level().getGameTime();
-        if (gameTime > data.getLong(DATA_END_TICK) || !player.getTags().contains(ROLL_TAG)) {
-            endWindow(player, data);
+        if (!isWindowArmed(getData(player))) {
             return;
         }
 
@@ -88,6 +108,55 @@ public final class ExtremeEvasionEvents {
             event.setAmount(0.0F);
             event.setCanceled(true);
         }
+    }
+
+    @SubscribeEvent
+    public static void onCriticalHit(CriticalHitEvent event) {
+        Player player = event.getEntity();
+        if (player.level().isClientSide()) {
+            return;
+        }
+
+        CompoundTag data = getData(player);
+        if (!hasCounterAttack(player, data)) {
+            return;
+        }
+
+        data.putBoolean(DATA_COUNTER_ATTACK_ACTIVE, true);
+        if (Config.enableExtremeCounterAttackCritical) {
+            event.setDamageModifier(Math.max(event.getDamageModifier(), 1.5F));
+            event.setResult(net.minecraftforge.eventbus.api.Event.Result.ALLOW);
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onCounterAttackHurt(LivingHurtEvent event) {
+        if (!(event.getSource().getEntity() instanceof ServerPlayer player)) {
+            return;
+        }
+
+        CompoundTag data = getData(player);
+        if (!data.getBoolean(DATA_COUNTER_ATTACK_ACTIVE) || !hasCounterAttack(player, data)) {
+            return;
+        }
+
+        data.remove(DATA_COUNTER_ATTACK_ACTIVE);
+        if (Config.enableExtremeCounterAttackArmorPiercing) {
+            event.setAmount(getArmorPiercingHurtAmount(event.getEntity(), event.getAmount()));
+        }
+
+        int remainingCharges = data.getInt(DATA_COUNTER_ATTACK_CHARGES) - 1;
+        if (remainingCharges <= 0) {
+            clearCounterAttack(data);
+            ExtremeEvasionNetwork.sendCounterAttack(player, false);
+        } else {
+            data.putInt(DATA_COUNTER_ATTACK_CHARGES, remainingCharges);
+        }
+    }
+
+    private static boolean isMobDirectAttack(net.minecraft.world.damagesource.DamageSource source) {
+        return source.getEntity() instanceof Mob attacker
+                && source.getDirectEntity() == attacker;
     }
 
     private static void startWindow(Player player, CompoundTag data) {
@@ -98,7 +167,6 @@ public final class ExtremeEvasionEvents {
         removeEcho(serverPlayer, data);
         data.putBoolean(DATA_ACTIVE, true);
         data.putBoolean(DATA_SUCCESS, false);
-        data.putLong(DATA_END_TICK, player.level().getGameTime() + EXTREME_EVASION_WINDOW_TICKS);
         data.putDouble(DATA_START_X, player.getX());
         data.putDouble(DATA_START_Y, player.getY());
         data.putDouble(DATA_START_Z, player.getZ());
@@ -115,7 +183,6 @@ public final class ExtremeEvasionEvents {
     private static void clearWindow(CompoundTag data) {
         // The actual echo cleanup is handled before calling this helper.
         data.remove(DATA_ACTIVE);
-        data.remove(DATA_END_TICK);
         data.remove(DATA_SUCCESS);
         data.remove(DATA_START_X);
         data.remove(DATA_START_Y);
@@ -133,10 +200,8 @@ public final class ExtremeEvasionEvents {
 
     public static boolean hasActiveExtremeEvasionWindow(Player player) {
         CompoundTag data = getData(player);
-        return data.getBoolean(DATA_ACTIVE)
-                && !data.getBoolean(DATA_SUCCESS)
-                && player.getTags().contains(ROLL_TAG)
-                && player.level().getGameTime() <= data.getLong(DATA_END_TICK);
+        return isWindowArmed(data)
+                && player.getTags().contains(ROLL_TAG);
     }
 
     public static Vec3 getExtremeEvasionStartPos(Player player) {
@@ -150,14 +215,99 @@ public final class ExtremeEvasionEvents {
 
     public static boolean tryTriggerExtremeEvasion(ServerPlayer player) {
         CompoundTag data = getData(player);
-        if (!hasActiveExtremeEvasionWindow(player)) {
+        if (!isWindowArmed(data)) {
             return false;
         }
 
-        data.putBoolean(DATA_SUCCESS, true);
         removeEcho(player, data);
-        player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, STRENGTH_DURATION_TICKS, STRENGTH_AMPLIFIER));
+        clearWindow(data);
+        data.putBoolean(DATA_ROLL_CONSUMED, true);
+        grantCounterAttack(player, data);
+        if (canTriggerBulletTime(player)) {
+            BulletTimeController.trigger();
+            ExtremeEvasionNetwork.sendBulletTime(player, Config.bulletTimeDurationMillis);
+        }
         return true;
+    }
+
+    private static boolean canTriggerBulletTime(ServerPlayer player) {
+        return Config.enableBulletTime
+                && player.getServer() != null
+                && player.getServer().isSingleplayer()
+                && !player.getServer().isPublished();
+    }
+
+    private static boolean isWindowArmed(CompoundTag data) {
+        return data.getBoolean(DATA_ACTIVE) && !data.getBoolean(DATA_SUCCESS);
+    }
+
+    private static void grantCounterAttack(ServerPlayer player, CompoundTag data) {
+        int windowTicks = Config.extremeCounterAttackWindowTicks;
+        int charges = Config.extremeCounterAttackCharges;
+        if (windowTicks <= 0 || charges <= 0) {
+            clearCounterAttack(data);
+            ExtremeEvasionNetwork.sendCounterAttack(player, false);
+            return;
+        }
+
+        data.putLong(DATA_COUNTER_ATTACK_END_TICK, player.level().getGameTime() + windowTicks);
+        data.putInt(DATA_COUNTER_ATTACK_CHARGES, charges);
+        data.remove(DATA_COUNTER_ATTACK_ACTIVE);
+        ExtremeEvasionNetwork.sendCounterAttack(player, true);
+    }
+
+    public static boolean hasCounterAttackBoost(Player player) {
+        return hasCounterAttack(player, getData(player));
+    }
+
+    private static boolean hasCounterAttack(Player player, CompoundTag data) {
+        return data.contains(DATA_COUNTER_ATTACK_END_TICK)
+                && player.level().getGameTime() <= data.getLong(DATA_COUNTER_ATTACK_END_TICK)
+                && data.getInt(DATA_COUNTER_ATTACK_CHARGES) > 0;
+    }
+
+    private static void clearExpiredCounterAttack(Player player, CompoundTag data) {
+        if (data.contains(DATA_COUNTER_ATTACK_END_TICK)
+                && player.level().getGameTime() > data.getLong(DATA_COUNTER_ATTACK_END_TICK)) {
+            clearCounterAttack(data);
+            if (player instanceof ServerPlayer serverPlayer) {
+                ExtremeEvasionNetwork.sendCounterAttack(serverPlayer, false);
+            }
+        }
+    }
+
+    private static void clearCounterAttack(CompoundTag data) {
+        data.remove(DATA_COUNTER_ATTACK_END_TICK);
+        data.remove(DATA_COUNTER_ATTACK_ACTIVE);
+        data.remove(DATA_COUNTER_ATTACK_CHARGES);
+    }
+
+    private static float getArmorPiercingHurtAmount(LivingEntity target, float desiredAfterArmor) {
+        if (desiredAfterArmor <= 0.0F) {
+            return desiredAfterArmor;
+        }
+
+        float armor = (float) target.getArmorValue();
+        float toughness = (float) target.getAttributeValue(Attributes.ARMOR_TOUGHNESS);
+        if (armor <= 0.0F) {
+            return desiredAfterArmor;
+        }
+
+        float low = desiredAfterArmor;
+        float high = desiredAfterArmor;
+        while (CombatRules.getDamageAfterAbsorb(high, armor, toughness) < desiredAfterArmor && high < desiredAfterArmor * 100.0F) {
+            high *= 2.0F;
+        }
+
+        for (int i = 0; i < 16; i++) {
+            float mid = (low + high) * 0.5F;
+            if (CombatRules.getDamageAfterAbsorb(mid, armor, toughness) < desiredAfterArmor) {
+                low = mid;
+            } else {
+                high = mid;
+            }
+        }
+        return high;
     }
 
     private static void spawnEcho(ServerPlayer player, CompoundTag data) {

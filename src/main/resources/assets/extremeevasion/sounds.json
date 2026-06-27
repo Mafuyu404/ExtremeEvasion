@@ -1,0 +1,10 @@
+{
+  "bullet_time_trigger": {
+    "sounds": [
+      {
+        "name": "extremeevasion:bullet_time_trigger",
+        "stream": false
+      }
+    ]
+  }
+}

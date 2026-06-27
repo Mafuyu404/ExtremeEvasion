@@ -1,13 +1,20 @@
 package cc.sighs.extremeevasion;
 
 import cc.sighs.extremeevasion.client.EvasionEchoRenderer;
+import cc.sighs.extremeevasion.client.CounterAttackGoldRenderType;
 import cc.sighs.extremeevasion.entity.EvasionEchoEntity;
+import cc.sighs.extremeevasion.network.ExtremeEvasionNetwork;
 import com.mojang.logging.LogUtils;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
@@ -18,8 +25,10 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
+import net.minecraftforge.client.event.RegisterShadersEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
+import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -33,6 +42,8 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.slf4j.Logger;
+
+import java.io.IOException;
 
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod(ExtremeEvasion.MODID)
@@ -75,6 +86,7 @@ public class ExtremeEvasion {
 
     public ExtremeEvasion() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+        ExtremeEvasionNetwork.register();
 
         // Register the commonSetup method for modloading
         modEventBus.addListener(this::commonSetup);
@@ -92,6 +104,7 @@ public class ExtremeEvasion {
 
         // Register the item to a creative tab
         modEventBus.addListener(this::addCreative);
+        modEventBus.addListener(this::registerEntityAttributes);
 
         // Register our mod's ForgeConfigSpec so that Forge can create and load the config file for us
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, Config.SPEC);
@@ -101,13 +114,6 @@ public class ExtremeEvasion {
         // Some common setup code
         LOGGER.info("HELLO FROM COMMON SETUP");
         LOGGER.info("DIRT BLOCK >> {}", ForgeRegistries.BLOCKS.getKey(Blocks.DIRT));
-
-        if (Config.logDirtBlock)
-            LOGGER.info("DIRT BLOCK >> {}", ForgeRegistries.BLOCKS.getKey(Blocks.DIRT));
-
-        LOGGER.info(Config.magicNumberIntroduction + Config.magicNumber);
-
-        Config.items.forEach((item) -> LOGGER.info("ITEM >> {}", item.toString()));
     }
 
     // Add the example block item to the building blocks tab
@@ -116,6 +122,15 @@ public class ExtremeEvasion {
         if (event.getTabKey() == CreativeModeTabs.BUILDING_BLOCKS)
             event.accept(EXAMPLE_BLOCK_ITEM);
     }
+
+    private void registerEntityAttributes(EntityAttributeCreationEvent event) {
+        event.put(EVASION_ECHO.get(), AttributeSupplier.builder()
+                .add(Attributes.MAX_HEALTH, 20.0D)
+                .add(Attributes.KNOCKBACK_RESISTANCE, 1.0D)
+                .add(Attributes.MOVEMENT_SPEED, 0.0D)
+                .build());
+    }
+
     // You can use SubscribeEvent and let the Event Bus discover methods to call
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
@@ -138,6 +153,18 @@ public class ExtremeEvasion {
         @SubscribeEvent
         public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
             event.registerEntityRenderer(EVASION_ECHO.get(), EvasionEchoRenderer::new);
+        }
+
+        @SubscribeEvent
+        public static void registerShaders(RegisterShadersEvent event) throws IOException {
+            event.registerShader(
+                    new ShaderInstance(event.getResourceProvider(), new ResourceLocation(MODID, "counter_attack_gold"), DefaultVertexFormat.NEW_ENTITY),
+                    CounterAttackGoldRenderType::setGoldOverlayShader
+            );
+            event.registerShader(
+                    new ShaderInstance(event.getResourceProvider(), new ResourceLocation(MODID, "counter_attack_halo"), DefaultVertexFormat.NEW_ENTITY),
+                    CounterAttackGoldRenderType::setGoldHaloShader
+            );
         }
     }
 }

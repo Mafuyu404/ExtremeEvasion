@@ -2,6 +2,7 @@ package cc.sighs.extremeevasion.mixin;
 
 import cc.sighs.extremeevasion.ExtremeEvasionEvents;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
@@ -11,6 +12,21 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(MeleeAttackGoal.class)
 public abstract class MeleeAttackGoalMixin {
+
+    @Redirect(
+            method = "tick",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/PathfinderMob;getPerceivedTargetDistanceSquareForMeleeAttack(Lnet/minecraft/world/entity/LivingEntity;)D"
+            )
+    )
+    private double extremeevasion$useRollStartDistance(PathfinderMob mob, LivingEntity target) {
+        if (target instanceof Player player && ExtremeEvasionEvents.hasActiveExtremeEvasionWindow(player)) {
+            Vec3 startPos = ExtremeEvasionEvents.getExtremeEvasionStartPos(player);
+            return mob.distanceToSqr(startPos.x, startPos.y, startPos.z);
+        }
+        return mob.getPerceivedTargetDistanceSquareForMeleeAttack(target);
+    }
 
     @Redirect(
             method = "tick",

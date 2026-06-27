@@ -2,12 +2,15 @@
   "required": true,
   "minVersion": "0.8",
   "package": "cc.sighs.extremeevasion.mixin",
-  "compatibilityLevel": "JAVA_8",
+  "compatibilityLevel": "JAVA_17",
   "refmap": "extremeevasion.refmap.json",
   "mixins": [
-    "MeleeAttackGoalMixin"
+    "MeleeAttackGoalMixin",
+    "PlayerAttackStrengthMixin",
+    "UtilMixin"
   ],
   "client": [
+    "CounterAttackItemRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
