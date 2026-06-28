@@ -16,17 +16,16 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.living.LivingAttackEvent;
-import net.minecraftforge.event.entity.living.LivingHurtEvent;
-import net.minecraftforge.event.entity.player.AttackEntityEvent;
-import net.minecraftforge.event.entity.player.CriticalHitEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
+import net.neoforged.neoforge.event.entity.player.CriticalHitEvent;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
-@Mod.EventBusSubscriber(modid = ExtremeEvasion.MODID)
 public final class ExtremeEvasionEvents {
 
     private static final String DATA_ROOT = ExtremeEvasion.MODID;
@@ -50,12 +49,12 @@ public final class ExtremeEvasionEvents {
     }
 
     @SubscribeEvent
-    public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || event.player.level().isClientSide()) {
+    public static void onPlayerTick(PlayerTickEvent.Post event) {
+        if (event.getEntity().level().isClientSide()) {
             return;
         }
 
-        Player player = event.player;
+        Player player = event.getEntity();
         CompoundTag data = getData(player);
         boolean rolling = RollCompat.isRolling(player);
         boolean active = data.getBoolean(DATA_ACTIVE);
@@ -91,7 +90,7 @@ public final class ExtremeEvasionEvents {
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public static void onLivingAttack(LivingAttackEvent event) {
+    public static void onLivingIncomingDamage(LivingIncomingDamageEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) {
             return;
         }
@@ -103,25 +102,6 @@ public final class ExtremeEvasionEvents {
         }
 
         if (isBulletTimeInvulnerable(player)) {
-            event.setCanceled(true);
-        }
-    }
-
-    @SubscribeEvent
-    public static void onLivingHurt(LivingHurtEvent event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)) {
-            return;
-        }
-
-        sanitizeLegacyState(player, getData(player));
-        if (hasActiveExtremeEvasionWindow(player) && isMobMeleeAttack(event.getSource()) && tryTriggerExtremeEvasion(player, event.getSource())) {
-            event.setAmount(0.0F);
-            event.setCanceled(true);
-            return;
-        }
-
-        if (isBulletTimeInvulnerable(player)) {
-            event.setAmount(0.0F);
             event.setCanceled(true);
         }
     }
@@ -139,7 +119,7 @@ public final class ExtremeEvasionEvents {
             return;
         }
 
-        MinecraftForge.EVENT_BUS.post(new ExtremeCounterAttackEvent(
+        NeoForge.EVENT_BUS.post(new ExtremeCounterAttackEvent(
                 serverPlayer,
                 event.getTarget(),
                 data.getInt(DATA_COUNTER_ATTACK_CHARGES)
@@ -164,13 +144,13 @@ public final class ExtremeEvasionEvents {
         }
 
         if (Config.enableExtremeCounterAttackCritical) {
-            event.setDamageModifier(Math.max(event.getDamageModifier(), 1.5F));
-            event.setResult(net.minecraftforge.eventbus.api.Event.Result.ALLOW);
+            event.setCriticalHit(true);
+            event.setDamageMultiplier(Math.max(event.getDamageMultiplier(), 1.5F));
         }
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public static void onCounterAttackHurt(LivingHurtEvent event) {
+    public static void onCounterAttackDamage(LivingDamageEvent.Pre event) {
         if (!(event.getSource().getEntity() instanceof ServerPlayer player)) {
             return;
         }
@@ -181,7 +161,7 @@ public final class ExtremeEvasionEvents {
         }
 
         if (Config.enableExtremeCounterAttackArmorPiercing) {
-            event.setAmount(getArmorPiercingHurtAmount(event.getEntity(), event.getAmount()));
+            event.setNewDamage(getArmorPiercingHurtAmount(event.getEntity(), event.getSource(), event.getNewDamage()));
         }
         clearActiveCounterAttack(data);
         if (!hasCounterAttack(player, data)) {
@@ -272,7 +252,7 @@ public final class ExtremeEvasionEvents {
         }
 
         boolean triggerBulletTime = canTriggerBulletTime(player);
-        MinecraftForge.EVENT_BUS.post(new ExtremeEvasionTriggeredEvent(player, damageSource, triggerBulletTime));
+        NeoForge.EVENT_BUS.post(new ExtremeEvasionTriggeredEvent(player, damageSource, triggerBulletTime));
 
         removeEcho(player, data);
         clearWindow(data);
@@ -444,7 +424,7 @@ public final class ExtremeEvasionEvents {
         data.remove(DATA_COUNTER_ATTACK_TARGET_UUID);
     }
 
-    private static float getArmorPiercingHurtAmount(LivingEntity target, float desiredAfterArmor) {
+    private static float getArmorPiercingHurtAmount(LivingEntity target, DamageSource damageSource, float desiredAfterArmor) {
         if (desiredAfterArmor <= 0.0F) {
             return desiredAfterArmor;
         }
@@ -457,13 +437,13 @@ public final class ExtremeEvasionEvents {
 
         float low = desiredAfterArmor;
         float high = desiredAfterArmor;
-        while (CombatRules.getDamageAfterAbsorb(high, armor, toughness) < desiredAfterArmor && high < desiredAfterArmor * 100.0F) {
+        while (CombatRules.getDamageAfterAbsorb(target, high, damageSource, armor, toughness) < desiredAfterArmor && high < desiredAfterArmor * 100.0F) {
             high *= 2.0F;
         }
 
         for (int i = 0; i < 16; i++) {
             float mid = (low + high) * 0.5F;
-            if (CombatRules.getDamageAfterAbsorb(mid, armor, toughness) < desiredAfterArmor) {
+            if (CombatRules.getDamageAfterAbsorb(target, mid, damageSource, armor, toughness) < desiredAfterArmor) {
                 low = mid;
             } else {
                 high = mid;

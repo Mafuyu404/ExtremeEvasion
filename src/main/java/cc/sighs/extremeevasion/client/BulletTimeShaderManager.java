@@ -5,18 +5,13 @@ import cc.sighs.extremeevasion.ExtremeEvasion;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.EffectInstance;
 import net.minecraft.client.renderer.PostChain;
-import net.minecraft.client.renderer.PostPass;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
-import net.minecraftforge.client.event.RenderLevelStageEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
 import java.io.IOException;
 
-@Mod.EventBusSubscriber(modid = ExtremeEvasion.MODID, value = Dist.CLIENT)
 public final class BulletTimeShaderManager {
 
     private static final String EFFECT_NAME = ExtremeEvasion.MODID + ":bullet_time";
@@ -40,7 +35,7 @@ public final class BulletTimeShaderManager {
                     MC.getTextureManager(),
                     MC.getResourceManager(),
                     MC.getMainRenderTarget(),
-                    new ResourceLocation(ExtremeEvasion.MODID, "shaders/post/bullet_time.json")
+                    ResourceLocation.fromNamespaceAndPath(ExtremeEvasion.MODID, "shaders/post/bullet_time.json")
             );
             needsResize = true;
         } catch (IOException exception) {
@@ -66,15 +61,9 @@ public final class BulletTimeShaderManager {
             return;
         }
 
-        for (PostPass postPass : postChain.passes) {
-            EffectInstance effect = postPass.getEffect();
-            if (EFFECT_NAME.equals(effect.getName())) {
-                effect.safeGetUniform("IntensityAmount").set(intensity);
-            }
-        }
+        postChain.setUniform("IntensityAmount", intensity);
     }
 
-    @SubscribeEvent
     public static void onRegisterClientReloadListeners(RegisterClientReloadListenersEvent event) {
         event.registerReloadListener((ResourceManagerReloadListener) resourceManager -> MC.execute(() -> {
             clean();
@@ -84,7 +73,6 @@ public final class BulletTimeShaderManager {
         }));
     }
 
-    @SubscribeEvent
     public static void onRenderLevelStage(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL) {
             return;
@@ -97,7 +85,7 @@ public final class BulletTimeShaderManager {
         }
 
         checkAndHandleResize();
-        postChain.process(event.getPartialTick());
+        postChain.process(event.getPartialTick().getGameTimeDeltaPartialTick(false));
         MC.getMainRenderTarget().bindWrite(false);
         CounterAttackGoldReplay.renderAndClear();
     }

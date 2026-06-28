@@ -10,7 +10,7 @@ import net.minecraft.resources.ResourceLocation;
 
 public class EvasionEchoRenderer extends EntityRenderer<EvasionEchoEntity> {
 
-    private static final ResourceLocation EMPTY_TEXTURE = new ResourceLocation(ExtremeEvasion.MODID, "textures/entity/evasion_echo.png");
+    private static final ResourceLocation EMPTY_TEXTURE = ResourceLocation.fromNamespaceAndPath(ExtremeEvasion.MODID, "textures/entity/evasion_echo.png");
 
     public EvasionEchoRenderer(EntityRendererProvider.Context context) {
         super(context);

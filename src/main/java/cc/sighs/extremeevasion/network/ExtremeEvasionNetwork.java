@@ -1,46 +1,28 @@
 package cc.sighs.extremeevasion.network;
 
-import cc.sighs.extremeevasion.ExtremeEvasion;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.network.NetworkDirection;
-import net.minecraftforge.network.NetworkRegistry;
-import net.minecraftforge.network.PacketDistributor;
-import net.minecraftforge.network.simple.SimpleChannel;
+import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 public final class ExtremeEvasionNetwork {
 
     private static final String PROTOCOL_VERSION = "1";
-    private static int nextPacketId;
-
-    private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
-            new ResourceLocation(ExtremeEvasion.MODID, "main"),
-            () -> PROTOCOL_VERSION,
-            PROTOCOL_VERSION::equals,
-            PROTOCOL_VERSION::equals
-    );
 
     private ExtremeEvasionNetwork() {
     }
 
-    public static void register() {
-        CHANNEL.messageBuilder(SyncCounterAttackPacket.class, nextPacketId++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(SyncCounterAttackPacket::encode)
-                .decoder(SyncCounterAttackPacket::decode)
-                .consumerMainThread(SyncCounterAttackPacket::handle)
-                .add();
-        CHANNEL.messageBuilder(SyncBulletTimePacket.class, nextPacketId++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(SyncBulletTimePacket::encode)
-                .decoder(SyncBulletTimePacket::decode)
-                .consumerMainThread(SyncBulletTimePacket::handle)
-                .add();
+    public static void register(RegisterPayloadHandlersEvent event) {
+        PayloadRegistrar registrar = event.registrar(PROTOCOL_VERSION);
+        registrar.playToClient(SyncCounterAttackPacket.TYPE, SyncCounterAttackPacket.STREAM_CODEC, SyncCounterAttackPacket::handle);
+        registrar.playToClient(SyncBulletTimePacket.TYPE, SyncBulletTimePacket.STREAM_CODEC, SyncBulletTimePacket::handle);
     }
 
     public static void sendCounterAttack(ServerPlayer player, boolean active) {
-        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new SyncCounterAttackPacket(active));
+        PacketDistributor.sendToPlayer(player, new SyncCounterAttackPacket(active));
     }
 
     public static void sendBulletTime(ServerPlayer player, long durationMillis) {
-        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new SyncBulletTimePacket(durationMillis));
+        PacketDistributor.sendToPlayer(player, new SyncBulletTimePacket(durationMillis));
     }
 }

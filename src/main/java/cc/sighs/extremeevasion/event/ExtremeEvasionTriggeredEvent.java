@@ -2,7 +2,7 @@ package cc.sighs.extremeevasion.event;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraftforge.eventbus.api.Event;
+import net.neoforged.bus.api.Event;
 
 public class ExtremeEvasionTriggeredEvent extends Event {
 

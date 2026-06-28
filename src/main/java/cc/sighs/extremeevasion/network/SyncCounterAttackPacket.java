@@ -1,28 +1,30 @@
 package cc.sighs.extremeevasion.network;
 
+import cc.sighs.extremeevasion.ExtremeEvasion;
 import cc.sighs.extremeevasion.client.CounterAttackClientState;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
+public record SyncCounterAttackPacket(boolean active) implements CustomPacketPayload {
+    public static final Type<SyncCounterAttackPacket> TYPE = new Type<>(
+            ResourceLocation.fromNamespaceAndPath(ExtremeEvasion.MODID, "sync_counter_attack")
+    );
+    public static final StreamCodec<RegistryFriendlyByteBuf, SyncCounterAttackPacket> STREAM_CODEC = StreamCodec.composite(
+            ByteBufCodecs.BOOL,
+            SyncCounterAttackPacket::active,
+            SyncCounterAttackPacket::new
+    );
 
-public record SyncCounterAttackPacket(boolean active) {
-
-    static void encode(SyncCounterAttackPacket packet, FriendlyByteBuf buffer) {
-        buffer.writeBoolean(packet.active);
+    public static void handle(SyncCounterAttackPacket packet, IPayloadContext context) {
+        context.enqueueWork(() -> CounterAttackClientState.setActive(packet.active));
     }
 
-    static SyncCounterAttackPacket decode(FriendlyByteBuf buffer) {
-        return new SyncCounterAttackPacket(buffer.readBoolean());
-    }
-
-    static void handle(SyncCounterAttackPacket packet, Supplier<NetworkEvent.Context> context) {
-        context.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(
-                Dist.CLIENT,
-                () -> () -> CounterAttackClientState.setActive(packet.active)
-        ));
-        context.get().setPacketHandled(true);
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

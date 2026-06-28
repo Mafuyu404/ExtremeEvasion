@@ -1,7 +1,7 @@
 package cc.sighs.extremeevasion.client;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexSorting;
@@ -15,6 +15,7 @@ import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.world.item.ItemStack;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
+import org.joml.Matrix4fStack;
 
 public final class CounterAttackGoldReplay {
 
@@ -50,26 +51,26 @@ public final class CounterAttackGoldReplay {
         }
 
         RenderSystem.backupProjectionMatrix();
-        PoseStack modelViewStack = RenderSystem.getModelViewStack();
-        modelViewStack.pushPose();
+        Matrix4fStack modelViewStack = RenderSystem.getModelViewStack();
+        modelViewStack.pushMatrix();
         try {
             RenderSystem.setProjectionMatrix(current.projection(), VertexSorting.ORTHOGRAPHIC_Z);
-            modelViewStack.setIdentity();
-            modelViewStack.mulPoseMatrix(current.modelView());
+            modelViewStack.identity();
+            modelViewStack.mul(current.modelView());
             RenderSystem.applyModelViewMatrix();
 
             PoseStack poseStack = new PoseStack();
             poseStack.last().pose().set(current.pose());
             poseStack.last().normal().set(current.normal());
 
-            MultiBufferSource.BufferSource immediate = MultiBufferSource.immediate(new BufferBuilder(256));
+            MultiBufferSource.BufferSource immediate = MultiBufferSource.immediate(new ByteBufferBuilder(256));
             RenderType emissiveItem = RenderType.entityTranslucentEmissive(TextureAtlas.LOCATION_BLOCKS);
             renderGoldPass(current, poseStack, immediate, emissiveItem, 1.08F, current.intensity() * 0.55F);
             renderGoldPass(current, poseStack, immediate, emissiveItem, 1.18F, current.intensity() * 0.38F);
             renderGoldPass(current, poseStack, immediate, emissiveItem, 1.0F, current.intensity() * 0.42F);
             immediate.endBatch();
         } finally {
-            modelViewStack.popPose();
+            modelViewStack.popMatrix();
             RenderSystem.applyModelViewMatrix();
             RenderSystem.restoreProjectionMatrix();
         }
@@ -105,59 +106,39 @@ public final class CounterAttackGoldReplay {
     private record GoldVertexConsumer(VertexConsumer delegate, float intensity) implements VertexConsumer {
 
         @Override
-        public VertexConsumer vertex(double x, double y, double z) {
-            delegate.vertex(x, y, z);
+        public VertexConsumer addVertex(float x, float y, float z) {
+            delegate.addVertex(x, y, z);
             return this;
         }
 
         @Override
-        public VertexConsumer color(int red, int green, int blue, int alpha) {
-            delegate.color(255, 204, 48, Math.round(alpha * intensity));
+        public VertexConsumer setColor(int red, int green, int blue, int alpha) {
+            delegate.setColor(255, 204, 48, Math.round(alpha * intensity));
             return this;
         }
 
         @Override
-        public VertexConsumer uv(float u, float v) {
-            delegate.uv(u, v);
+        public VertexConsumer setUv(float u, float v) {
+            delegate.setUv(u, v);
             return this;
         }
 
         @Override
-        public VertexConsumer overlayCoords(int u, int v) {
-            delegate.overlayCoords(u, v);
+        public VertexConsumer setUv1(int u, int v) {
+            delegate.setUv1(u, v);
             return this;
         }
 
         @Override
-        public VertexConsumer uv2(int u, int v) {
-            delegate.uv2(u, v);
+        public VertexConsumer setUv2(int u, int v) {
+            delegate.setUv2(u, v);
             return this;
         }
 
         @Override
-        public VertexConsumer normal(float x, float y, float z) {
-            delegate.normal(x, y, z);
+        public VertexConsumer setNormal(float x, float y, float z) {
+            delegate.setNormal(x, y, z);
             return this;
-        }
-
-        @Override
-        public void endVertex() {
-            delegate.endVertex();
-        }
-
-        @Override
-        public void vertex(float x, float y, float z, float red, float green, float blue, float alpha, float u, float v, int overlay, int light, float normalX, float normalY, float normalZ) {
-            delegate.vertex(x, y, z, 1.0F, 0.8F, 0.19F, alpha * intensity, u, v, overlay, light, normalX, normalY, normalZ);
-        }
-
-        @Override
-        public void defaultColor(int red, int green, int blue, int alpha) {
-            delegate.defaultColor(255, 204, 48, Math.round(alpha * intensity));
-        }
-
-        @Override
-        public void unsetDefaultColor() {
-            delegate.unsetDefaultColor();
         }
     }
 }

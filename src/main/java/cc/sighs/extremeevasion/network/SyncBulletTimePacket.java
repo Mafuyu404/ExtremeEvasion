@@ -1,32 +1,34 @@
 package cc.sighs.extremeevasion.network;
 
+import cc.sighs.extremeevasion.ExtremeEvasion;
 import cc.sighs.extremeevasion.client.BulletTimeClientState;
 import cc.sighs.extremeevasion.client.BulletTimeSoundPlayer;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
+public record SyncBulletTimePacket(long durationMillis) implements CustomPacketPayload {
+    public static final Type<SyncBulletTimePacket> TYPE = new Type<>(
+            ResourceLocation.fromNamespaceAndPath(ExtremeEvasion.MODID, "sync_bullet_time")
+    );
+    public static final StreamCodec<RegistryFriendlyByteBuf, SyncBulletTimePacket> STREAM_CODEC = StreamCodec.composite(
+            ByteBufCodecs.VAR_LONG,
+            SyncBulletTimePacket::durationMillis,
+            SyncBulletTimePacket::new
+    );
 
-public record SyncBulletTimePacket(long durationMillis) {
-
-    static void encode(SyncBulletTimePacket packet, FriendlyByteBuf buffer) {
-        buffer.writeVarLong(packet.durationMillis);
+    public static void handle(SyncBulletTimePacket packet, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            BulletTimeClientState.start(packet.durationMillis);
+            BulletTimeSoundPlayer.playTrigger();
+        });
     }
 
-    static SyncBulletTimePacket decode(FriendlyByteBuf buffer) {
-        return new SyncBulletTimePacket(buffer.readVarLong());
-    }
-
-    static void handle(SyncBulletTimePacket packet, Supplier<NetworkEvent.Context> context) {
-        context.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(
-                Dist.CLIENT,
-                () -> () -> {
-                    BulletTimeClientState.start(packet.durationMillis);
-                    BulletTimeSoundPlayer.playTrigger();
-                }
-        ));
-        context.get().setPacketHandled(true);
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

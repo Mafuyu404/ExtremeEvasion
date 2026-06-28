@@ -2,11 +2,11 @@ package cc.sighs.extremeevasion.compat.roll;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.fml.ModList;
-import org.slf4j.Logger;
+import net.neoforged.fml.ModList;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
 
 public final class RollCompat {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -23,15 +23,9 @@ public final class RollCompat {
         initialized = true;
 
         register(new MovesLikeMafuyuRollProvider());
-        if (ModList.get().isLoaded("combatroll")) {
-            register(new CombatRollProvider());
-        }
-        if (ModList.get().isLoaded("epicfight")) {
-            register(new EpicFightRollProvider());
-        }
-        if (ModList.get().isLoaded("parcool")) {
-            register(new ParCoolRollProvider());
-        }
+        registerIfLoaded("combat_roll", new CombatRollProvider());
+        registerIfLoaded("epicfight", new EpicFightRollProvider());
+        registerIfLoaded("parcool", new ParCoolRollProvider());
 
         for (RollProvider provider : PROVIDERS) {
             try {
@@ -53,5 +47,11 @@ public final class RollCompat {
 
     private static void register(RollProvider provider) {
         PROVIDERS.add(provider);
+    }
+
+    private static void registerIfLoaded(String modId, RollProvider provider) {
+        if (ModList.get().isLoaded(modId)) {
+            register(provider);
+        }
     }
 }

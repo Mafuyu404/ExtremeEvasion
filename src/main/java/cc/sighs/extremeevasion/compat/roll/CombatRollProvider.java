@@ -14,17 +14,17 @@ import java.util.UUID;
 
 final class CombatRollProvider implements RollProvider {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final String EVENT_CLASS = "net.combatroll.api.event.Event";
-    private static final String EVENTS_CLASS = "net.combatroll.api.event.ServerSideRollEvents";
-    private static final String START_EVENT_CLASS = "net.combatroll.api.event.ServerSideRollEvents$PlayerStartRolling";
-    private static final String ROLL_MANAGER_CLASS = "net.combatroll.internals.RollManager";
+    private static final String EVENT_CLASS = "net.combat_roll.api.event.Event";
+    private static final String EVENTS_CLASS = "net.combat_roll.api.event.ServerSideRollEvents";
+    private static final String START_EVENT_CLASS = "net.combat_roll.api.event.ServerSideRollEvents$PlayerStartRolling";
+    private static final String ROLL_MANAGER_CLASS = "net.combat_roll.internals.RollManager";
     private static final int FALLBACK_ROLL_DURATION_TICKS = 8;
 
     private final Map<UUID, Long> rollingUntilTicks = new HashMap<>();
 
     @Override
     public String id() {
-        return "combatroll";
+        return "combat_roll";
     }
 
     @Override

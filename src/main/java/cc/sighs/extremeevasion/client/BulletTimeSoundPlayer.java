@@ -10,7 +10,7 @@ import net.minecraft.sounds.SoundEvent;
 public final class BulletTimeSoundPlayer {
 
     private static final SoundEvent TRIGGER_SOUND = SoundEvent.createVariableRangeEvent(
-            new ResourceLocation(ExtremeEvasion.MODID, "bullet_time_trigger")
+            ResourceLocation.fromNamespaceAndPath(ExtremeEvasion.MODID, "bullet_time_trigger")
     );
 
     private BulletTimeSoundPlayer() {
