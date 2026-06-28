@@ -2,6 +2,7 @@ package cc.sighs.extremeevasion;
 
 import cc.sighs.extremeevasion.client.EvasionEchoRenderer;
 import cc.sighs.extremeevasion.client.CounterAttackGoldRenderType;
+import cc.sighs.extremeevasion.compat.roll.RollCompat;
 import cc.sighs.extremeevasion.entity.EvasionEchoEntity;
 import cc.sighs.extremeevasion.network.ExtremeEvasionNetwork;
 import com.mojang.logging.LogUtils;
@@ -67,6 +68,7 @@ public class ExtremeEvasion {
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
+        event.enqueueWork(RollCompat::init);
     }
 
     private void registerEntityAttributes(EntityAttributeCreationEvent event) {

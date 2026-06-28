@@ -10,6 +10,20 @@ public final class Config {
 
     private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
 
+    private static final ForgeConfigSpec.IntValue MINIMUM_EXTREME_EVASION_WINDOW_TICKS = BUILDER
+            .comment(
+                    "Minimum ticks that the extreme evasion detection window stays open after a roll starts.",
+                    "翻滚开始后，极限闪避判定窗口至少保持开启的 tick 数。"
+            )
+            .defineInRange("minimumExtremeEvasionWindowTicks", 15, 0, 20 * 60);
+
+    private static final ForgeConfigSpec.IntValue MAXIMUM_EXTREME_EVASION_WINDOW_TICKS = BUILDER
+            .comment(
+                    "Maximum ticks that the extreme evasion detection window can stay open after a roll starts.",
+                    "ZH: Maximum extreme evasion window duration in ticks."
+            )
+            .defineInRange("maximumExtremeEvasionWindowTicks", 20, 0, 20 * 60);
+
     private static final ForgeConfigSpec.IntValue EXTREME_COUNTER_ATTACK_WINDOW_TICKS = BUILDER
             .comment(
                     "Ticks after a successful extreme evasion during which Extreme Counter is available.",
@@ -55,7 +69,7 @@ public final class Config {
     private static final ForgeConfigSpec.BooleanValue ENABLE_BULLET_TIME_INVULNERABILITY = BUILDER
             .comment(
                     "Whether the player cannot be attacked during bullet time.",
-                    "ZH: 子弹时间期间，玩家是否无法被攻击。"
+                    "子弹时间期间，玩家是否无法被攻击。"
             )
             .define("enableBulletTimeInvulnerability", true);
 
@@ -110,6 +124,8 @@ public final class Config {
 
     static final ForgeConfigSpec SPEC = BUILDER.build();
 
+    public static int minimumExtremeEvasionWindowTicks;
+    public static int maximumExtremeEvasionWindowTicks;
     public static int extremeCounterAttackWindowTicks;
     public static int extremeCounterAttackCharges;
     public static boolean enableExtremeCounterAttackCritical;
@@ -130,6 +146,11 @@ public final class Config {
 
     @SubscribeEvent
     static void onLoad(ModConfigEvent event) {
+        minimumExtremeEvasionWindowTicks = MINIMUM_EXTREME_EVASION_WINDOW_TICKS.get();
+        maximumExtremeEvasionWindowTicks = Math.max(
+                MAXIMUM_EXTREME_EVASION_WINDOW_TICKS.get(),
+                minimumExtremeEvasionWindowTicks
+        );
         extremeCounterAttackWindowTicks = EXTREME_COUNTER_ATTACK_WINDOW_TICKS.get();
         extremeCounterAttackCharges = EXTREME_COUNTER_ATTACK_CHARGES.get();
         enableExtremeCounterAttackCritical = ENABLE_EXTREME_COUNTER_ATTACK_CRITICAL.get();

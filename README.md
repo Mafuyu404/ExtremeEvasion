@@ -1,40 +1,56 @@
 # ExtremeEvasion 使用说明
 
-ExtremeEvasion 是一个围绕“翻滚闪避”的战斗增强模组。玩家在翻滚期间成功躲过生物攻击时，会触发极限闪避，并获得短时间的极限反击机会。
+ExtremeEvasion 是一个围绕“翻滚闪避”和“极限反击”的战斗增强模组。玩家在翻滚窗口内躲过怪物攻击时，会触发极限闪避，取消这次危险，并获得短时间的极限反击机会。单人游玩时还可以进入子弹时间。
 
 ## 安装需求
 
-- Minecraft: 1.20.1
-- Forge: 47.x
-- 前置模组：Moves Like Mafuyu
+- Minecraft `1.20.1`
+- Forge `47.x`
+- 需要至少安装一个受支持的翻滚模组
 
-把本模组 jar 放入 `mods` 文件夹即可。
+当前支持的翻滚来源：
+
+- Moves Like Mafuyu
+- Combat Roll
+- Epic Fight
+- ParCool
+
+把本模组 jar 放入 `mods` 文件夹即可。具体翻滚按键和动作设置由对应翻滚模组控制。
 
 ## 核心机制
 
 ### 极限闪避
 
-在玩家处于翻滚状态时，如果生物的近战攻击或弹射物攻击命中极限闪避判定，就会触发极限闪避。
+当玩家开始翻滚时，模组会打开一个极限闪避判定窗口。窗口内如果怪物对玩家发动近战攻击，或者残影被攻击命中，就会触发极限闪避。
 
 触发成功后：
 
-- 本次受到的攻击会被取消。
-- 本次翻滚不会再次重复触发极限闪避。
-- 玩家获得“极限反击”。
-- 单人游玩时可以进入子弹时间。
+- 本次攻击会被取消。
+- 本次翻滚不会重复触发极限闪避。
+- 残影和 AI 诱导判定会立刻清理。
+- 玩家获得极限反击。
+- 单人游玩时可触发子弹时间。
+
+极限闪避窗口有最短和最长时间限制。默认至少 `15tick`，最多 `20tick`。这用于兼容不同翻滚模组的动作长度，避免窗口太短漏判，也避免窗口异常延长。
+
+### 残影与近战诱导
+
+残影主要用于兜底弹射物或特殊伤害来源。近战怪物的关键判定在怪物真正准备执行近战攻击时触发，而不是等玩家实际受到伤害后再判断。
+
+因此如果你看到怪物挥手、挥斧，并且此时仍处于极限闪避窗口内，就应该能触发极限闪避。
 
 ### 极限反击
 
-极限闪避成功后，玩家会获得一定次数的极限反击。
+极限闪避成功后，玩家会获得极限反击。
 
-默认情况下，极限反击会让接下来的攻击：
+默认情况下，极限反击会强化接下来的 `1` 次攻击：
 
-- 必定暴击
-- 无视护甲
-- 立刻视为满攻击冷却
-- 手持武器出现金色高亮和外圈光晕
+- 可配置为必定暴击。
+- 可配置为无视护甲。
+- 触发后会立刻完成武器攻击冷却。
+- 手持物品会显示金色发光高亮。
 
-极限反击会在成功造成伤害后消耗次数。次数用完或持续时间结束后，效果消失。
+极限反击按“攻击次数”消耗，而不是按“伤害次数”消耗。攻击命中目标后，金色高亮会淡出。
 
 ### 子弹时间
 
@@ -46,7 +62,7 @@ ExtremeEvasion 是一个围绕“翻滚闪避”的战斗增强模组。玩家�
 - 专用服务器
 - 单人世界开放到局域网后
 
-子弹时间期间会出现蓝灰色屏幕滤镜、边缘模糊和触发音效。
+子弹时间默认持续 `3000ms`，时间流速默认是 `30%`。期间可以启用蓝灰屏幕滤镜、边缘模糊、触发音效，以及“子弹时间内无法被攻击”。
 
 ## 配置文件
 
@@ -56,37 +72,37 @@ ExtremeEvasion 是一个围绕“翻滚闪避”的战斗增强模组。玩家�
 config/extremeevasion-common.toml
 ```
 
-主要配置项：
+如果你已经启动过游戏，修改配置后通常需要重启游戏或重新加载配置才会生效。
+
+### 极限闪避窗口
+
+```toml
+minimumExtremeEvasionWindowTicks = 15
+maximumExtremeEvasionWindowTicks = 20
+```
+
+`minimumExtremeEvasionWindowTicks` 控制翻滚开始后判定窗口至少保持多久。  
+`maximumExtremeEvasionWindowTicks` 控制判定窗口最多保持多久。
+
+如果最大值小于最小值，模组会按最小值处理，避免配置错误导致窗口无效。
+
+### 极限反击
 
 ```toml
 extremeCounterAttackWindowTicks = 30
-```
-
-极限反击可用的持续 tick 数。20 tick 约等于 1 秒。
-
-```toml
 extremeCounterAttackCharges = 1
-```
-
-每次极限闪避成功后，极限反击可强化的攻击次数。
-
-```toml
 enableExtremeCounterAttackCritical = true
-```
-
-极限反击是否必定暴击。
-
-```toml
 enableExtremeCounterAttackArmorPiercing = true
-```
-
-极限反击是否无视护甲。
-
-```toml
 enableExtremeCounterGoldShader = true
 ```
 
-是否显示极限反击期间的手持武器金色高亮。
+`extremeCounterAttackWindowTicks` 是极限反击可用时间，`20tick` 约等于 `1` 秒。  
+`extremeCounterAttackCharges` 是极限反击可强化的攻击次数。  
+`enableExtremeCounterAttackCritical` 控制是否必定暴击。  
+`enableExtremeCounterAttackArmorPiercing` 控制是否无视护甲。  
+`enableExtremeCounterGoldShader` 控制是否显示手持物品金色高亮。
+
+### 子弹时间
 
 ```toml
 enableBulletTime = true
@@ -95,40 +111,43 @@ bulletTimeSpeed = 0.3
 bulletTimeDurationMillis = 3000
 ```
 
-控制单人游玩中的子弹时间。`bulletTimeSpeed = 0.3` 表示时间流速为 30%。
+`enableBulletTime` 控制是否启用子弹时间。  
+`enableBulletTimeInvulnerability` 控制子弹时间内玩家是否无法被攻击。  
+`bulletTimeSpeed = 0.3` 表示子弹时间期间世界时间流速为 `30%`。  
+`bulletTimeDurationMillis` 是持续时间，单位为毫秒。
+
+### 视觉与音效
 
 ```toml
 bulletTimeVisualFadeMillis = 250
 enableBulletTimeScreenShader = true
-```
-
-控制子弹时间屏幕滤镜和淡入淡出。
-
-```toml
 enableBulletTimeTriggerSound = true
 bulletTimeTriggerSoundVolume = 0.65
 bulletTimeTriggerSoundPitch = 1.0
 ```
 
-控制子弹时间触发音效。
+`enableBulletTimeScreenShader` 控制蓝灰子弹时间滤镜。  
+`bulletTimeVisualFadeMillis` 控制滤镜淡入淡出时间。  
+`enableBulletTimeTriggerSound` 控制子弹时间触发音效。  
+音量和音高分别由 `bulletTimeTriggerSoundVolume`、`bulletTimeTriggerSoundPitch` 控制。
 
 ## 常见问题
 
 ### 为什么多人游戏没有子弹时间？
 
-子弹时间会改变全局时间流速。为了避免影响多人服务器和其他玩家，本模组只允许单人游玩触发子弹时间。
+子弹时间会改变世界时间流速。为了避免影响其他玩家，它只允许在未开放局域网的单人世界中触发。
 
-### 为什么触发了极限闪避但没有再次触发？
+### 为什么同一次翻滚只触发一次？
 
-同一次翻滚内，极限闪避只能成功触发一次。触发后残影和 AI 诱导判定会立刻清除，防止重复触发。
+这是设计行为。同一次翻滚成功触发极限闪避后，会立刻清理残影和 AI 诱导判定，并标记本次翻滚已消耗，防止重复触发。
 
-### 为什么武器有金色高亮？
+### 为什么手持物品变金？
 
-金色高亮表示你当前拥有极限反击。造成伤害并消耗完极限反击次数后，高亮会淡出。
+这表示你当前拥有极限反击。极限反击消耗完或持续时间结束后，金色高亮会淡出。
 
 ### 可以关闭视觉效果吗？
 
-可以。关闭以下配置项即可：
+可以：
 
 ```toml
 enableExtremeCounterGoldShader = false
@@ -143,4 +162,4 @@ enableBulletTimeScreenShader = false
 enableBulletTime = false
 ```
 
-极限闪避和极限反击仍会正常工作。
+关闭子弹时间后，极限闪避和极限反击仍会正常工作。
