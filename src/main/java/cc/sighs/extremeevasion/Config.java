@@ -52,6 +52,13 @@ public final class Config {
             )
             .define("enableBulletTime", true);
 
+    private static final ForgeConfigSpec.BooleanValue ENABLE_BULLET_TIME_INVULNERABILITY = BUILDER
+            .comment(
+                    "Whether the player cannot be attacked during bullet time.",
+                    "ZH: 子弹时间期间，玩家是否无法被攻击。"
+            )
+            .define("enableBulletTimeInvulnerability", true);
+
     private static final ForgeConfigSpec.DoubleValue BULLET_TIME_SPEED = BUILDER
             .comment(
                     "World time speed during bullet time. 0.2 means 20 percent speed.",
@@ -109,6 +116,7 @@ public final class Config {
     public static boolean enableExtremeCounterAttackArmorPiercing;
     public static boolean enableExtremeCounterGoldShader;
     public static boolean enableBulletTime;
+    public static boolean enableBulletTimeInvulnerability;
     public static double bulletTimeSpeed;
     public static int bulletTimeDurationMillis;
     public static int bulletTimeVisualFadeMillis;
@@ -128,6 +136,7 @@ public final class Config {
         enableExtremeCounterAttackArmorPiercing = ENABLE_EXTREME_COUNTER_ATTACK_ARMOR_PIERCING.get();
         enableExtremeCounterGoldShader = ENABLE_EXTREME_COUNTER_GOLD_SHADER.get();
         enableBulletTime = ENABLE_BULLET_TIME.get();
+        enableBulletTimeInvulnerability = ENABLE_BULLET_TIME_INVULNERABILITY.get();
         bulletTimeSpeed = BULLET_TIME_SPEED.get();
         bulletTimeDurationMillis = BULLET_TIME_DURATION_MILLIS.get();
         bulletTimeVisualFadeMillis = BULLET_TIME_VISUAL_FADE_MILLIS.get();

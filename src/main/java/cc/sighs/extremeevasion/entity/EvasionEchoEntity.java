@@ -63,7 +63,7 @@ public class EvasionEchoEntity extends ArmorStand {
             return false;
         }
 
-        boolean triggered = ExtremeEvasionEvents.tryTriggerExtremeEvasion(owner);
+        boolean triggered = ExtremeEvasionEvents.tryTriggerExtremeEvasion(owner, source);
         discard();
         return triggered || super.hurt(source, amount);
     }

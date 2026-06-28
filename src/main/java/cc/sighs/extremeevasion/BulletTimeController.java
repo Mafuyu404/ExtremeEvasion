@@ -68,7 +68,7 @@ public final class BulletTimeController {
         }
     }
 
-    private static long monotonicMillis() {
+    public static long monotonicMillis() {
         try {
             BulletTimeClock.setBypassBulletTime(true);
             return Util.getNanos() / 1_000_000L;

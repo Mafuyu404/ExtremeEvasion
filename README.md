@@ -90,6 +90,7 @@ enableExtremeCounterGoldShader = true
 
 ```toml
 enableBulletTime = true
+enableBulletTimeInvulnerability = true
 bulletTimeSpeed = 0.3
 bulletTimeDurationMillis = 3000
 ```

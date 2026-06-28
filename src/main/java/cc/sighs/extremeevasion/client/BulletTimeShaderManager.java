@@ -99,6 +99,7 @@ public final class BulletTimeShaderManager {
         checkAndHandleResize();
         postChain.process(event.getPartialTick());
         MC.getMainRenderTarget().bindWrite(false);
+        CounterAttackGoldReplay.renderAndClear();
     }
 
     private static void checkAndHandleResize() {
