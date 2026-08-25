@@ -8,12 +8,11 @@ ExtremeEvasion 是一个围绕“翻滚闪避”和“极限反击”的战斗�
 - Forge `47.x`
 - 需要至少安装一个受支持的翻滚模组
 
-当前支持的翻滚来源：
-
-- Moves Like Mafuyu
-- Combat Roll
-- Epic Fight
-- ParCool
+当前支持的闪避/翻滚来源：
+- Moves Like Mafuyu 高速企鹅
+- Combat Roll 战斗翻滚
+- Epic Fight 史诗战斗
+- ParCool 跑酷
 
 把本模组 jar 放入 `mods` 文件夹即可。具体翻滚按键和动作设置由对应翻滚模组控制。
 

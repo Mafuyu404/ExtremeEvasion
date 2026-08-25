@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_17",
   "refmap": "extremeevasion.refmap.json",
   "mixins": [
+    "EpicFightDodgeSkillMixin",
     "MeleeAttackGoalMixin",
     "PlayerAttackStrengthMixin",
     "UtilMixin"
