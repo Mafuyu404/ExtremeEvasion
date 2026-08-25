@@ -41,6 +41,18 @@ public final class ExtremeEvasionNetwork {
     }
 
     public static void sendBulletTime(ServerPlayer player, long durationMillis) {
-        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new SyncBulletTimePacket(durationMillis));
+        sendBulletTime(player, durationMillis, true);
+    }
+
+    public static void sendBulletTime(ServerPlayer player, long durationMillis, boolean globalClock) {
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new SyncBulletTimePacket(durationMillis, globalClock));
+    }
+
+    public static void sendBulletTimeToAll(long durationMillis) {
+        sendBulletTimeToAll(durationMillis, true);
+    }
+
+    public static void sendBulletTimeToAll(long durationMillis, boolean globalClock) {
+        CHANNEL.send(PacketDistributor.ALL.noArg(), new SyncBulletTimePacket(durationMillis, globalClock));
     }
 }

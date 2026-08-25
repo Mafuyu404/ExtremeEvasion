@@ -2,8 +2,10 @@ package cc.sighs.extremeevasion.event;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraftforge.eventbus.api.Cancelable;
 import net.minecraftforge.eventbus.api.Event;
 
+@Cancelable
 public class ExtremeCounterAttackEvent extends Event {
 
     private final ServerPlayer player;

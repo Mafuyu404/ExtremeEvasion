@@ -28,11 +28,29 @@ public final class BulletTimeController {
         return getMillis() * 1_000_000L;
     }
 
-    public static synchronized void trigger() {
+    public static synchronized boolean trigger() {
+        if (!Config.enableBulletTime || Config.bulletTimeDurationMillis <= 0) {
+            return false;
+        }
+
+        if (Config.bulletTimeExceptPlayer
+                && TimeScaleLibCompat.applyExceptPlayer(Config.bulletTimeSpeed, Config.bulletTimeDurationMillis)) {
+            return true;
+        }
+
+        triggerGlobalClock();
+        return false;
+    }
+
+    /** Starts the legacy global clock even when the local mode config prefers TimeScaleLib. */
+    public static synchronized void triggerGlobal() {
         if (!Config.enableBulletTime || Config.bulletTimeDurationMillis <= 0) {
             return;
         }
+        triggerGlobalClock();
+    }
 
+    private static void triggerGlobalClock() {
         long now = monotonicMillis();
         if (!initialized) {
             initialized = true;

@@ -16,6 +16,8 @@ ExtremeEvasion 是一个围绕“翻滚闪避”和“极限反击”的战斗�
 
 把本模组 jar 放入 `mods` 文件夹即可。具体翻滚按键和动作设置由对应翻滚模组控制。
 
+TimeScaleLib is optional. Install the Forge 1.20.1 version from the Modrinth page when using `bulletTimeExceptPlayer`.
+
 ## 核心机制
 
 ### 极限闪避
@@ -105,10 +107,16 @@ enableExtremeCounterGoldShader = true
 
 ```toml
 enableBulletTime = true
+enableBulletTimeInMultiplayer = false
+bulletTimeExceptPlayer = false
 enableBulletTimeInvulnerability = true
 bulletTimeSpeed = 0.3
 bulletTimeDurationMillis = 3000
 ```
+
+Set `enableBulletTimeInMultiplayer = true` to allow bullet time on multiplayer or dedicated servers. Set
+`bulletTimeExceptPlayer = true` to use TimeScaleLib's player-exempt scaling mode when TimeScaleLib is installed;
+without the optional dependency, the implementation falls back to the legacy global clock.
 
 `enableBulletTime` 控制是否启用子弹时间。  
 `enableBulletTimeInvulnerability` 控制子弹时间内玩家是否无法被攻击。  
