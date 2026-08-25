@@ -23,6 +23,18 @@ public final class ExtremeEvasionNetwork {
     }
 
     public static void sendBulletTime(ServerPlayer player, long durationMillis) {
-        PacketDistributor.sendToPlayer(player, new SyncBulletTimePacket(durationMillis));
+        sendBulletTime(player, durationMillis, true);
+    }
+
+    public static void sendBulletTime(ServerPlayer player, long durationMillis, boolean globalClock) {
+        PacketDistributor.sendToPlayer(player, new SyncBulletTimePacket(durationMillis, globalClock));
+    }
+
+    public static void sendBulletTimeToAll(long durationMillis) {
+        sendBulletTimeToAll(durationMillis, true);
+    }
+
+    public static void sendBulletTimeToAll(long durationMillis, boolean globalClock) {
+        PacketDistributor.sendToAllPlayers(new SyncBulletTimePacket(durationMillis, globalClock));
     }
 }

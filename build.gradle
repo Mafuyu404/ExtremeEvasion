@@ -73,6 +73,8 @@ dependencies {
     implementation "curse.maven:parcool-482378:7760593"
     implementation "curse.maven:cloth-config-348521:5729127"
     implementation "curse.maven:playeranimator-658587:7389814"
+    // Optional integration: the mod continues to work without TimeScaleLib installed.
+    implementation "curse.maven:timescalelib-1542930:8608560"
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
@@ -116,4 +118,8 @@ idea {
         downloadSources = true
         downloadJavadoc = true
     }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
 }

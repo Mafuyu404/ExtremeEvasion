@@ -119,11 +119,15 @@ public final class ExtremeEvasionEvents {
             return;
         }
 
-        NeoForge.EVENT_BUS.post(new ExtremeCounterAttackEvent(
+        ExtremeCounterAttackEvent counterAttackEvent = new ExtremeCounterAttackEvent(
                 serverPlayer,
                 event.getTarget(),
                 data.getInt(DATA_COUNTER_ATTACK_CHARGES)
-        ));
+        );
+        NeoForge.EVENT_BUS.post(counterAttackEvent);
+        if (counterAttackEvent.isCanceled()) {
+            return;
+        }
 
         data.putBoolean(DATA_COUNTER_ATTACK_ACTIVE, true);
         data.putLong(DATA_COUNTER_ATTACK_ACTIVE_TICK, player.level().getGameTime());
@@ -252,16 +256,25 @@ public final class ExtremeEvasionEvents {
         }
 
         boolean triggerBulletTime = canTriggerBulletTime(player);
-        NeoForge.EVENT_BUS.post(new ExtremeEvasionTriggeredEvent(player, damageSource, triggerBulletTime));
+        ExtremeEvasionTriggeredEvent evasionEvent = new ExtremeEvasionTriggeredEvent(player, damageSource, triggerBulletTime);
+        NeoForge.EVENT_BUS.post(evasionEvent);
+        if (evasionEvent.isCanceled()) {
+            return false;
+        }
 
         removeEcho(player, data);
         clearWindow(data);
         data.putBoolean(DATA_ROLL_CONSUMED, true);
         grantCounterAttack(player, data);
         if (triggerBulletTime) {
-            BulletTimeController.trigger();
+            boolean usingTimeScaleLib = BulletTimeController.trigger();
             grantBulletTimeInvulnerability(data);
-            ExtremeEvasionNetwork.sendBulletTime(player, Config.bulletTimeDurationMillis);
+            if (player.getServer() != null
+                    && (!player.getServer().isSingleplayer() || player.getServer().isPublished())) {
+                ExtremeEvasionNetwork.sendBulletTimeToAll(Config.bulletTimeDurationMillis, !usingTimeScaleLib);
+            } else {
+                ExtremeEvasionNetwork.sendBulletTime(player, Config.bulletTimeDurationMillis, !usingTimeScaleLib);
+            }
         }
         return true;
     }
@@ -269,8 +282,8 @@ public final class ExtremeEvasionEvents {
     private static boolean canTriggerBulletTime(ServerPlayer player) {
         return Config.enableBulletTime
                 && player.getServer() != null
-                && player.getServer().isSingleplayer()
-                && !player.getServer().isPublished();
+                && (Config.enableBulletTimeInMultiplayer
+                || (player.getServer().isSingleplayer() && !player.getServer().isPublished()));
     }
 
     private static void grantBulletTimeInvulnerability(CompoundTag data) {

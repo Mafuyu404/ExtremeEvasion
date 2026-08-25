@@ -58,10 +58,24 @@ public final class Config {
 
     private static final ModConfigSpec.BooleanValue ENABLE_BULLET_TIME = BUILDER
             .comment(
-                    "Whether successful extreme evasion triggers bullet time in singleplayer.",
-                    "单人游玩时，极限闪避成功是否触发子弹时间。"
+                    "Whether successful extreme evasion triggers bullet time.",
+                    "极限闪避成功后是否触发子弹时间。"
             )
             .define("enableBulletTime", true);
+
+    private static final ModConfigSpec.BooleanValue ENABLE_BULLET_TIME_IN_MULTIPLAYER = BUILDER
+            .comment(
+                    "Whether bullet time may trigger in multiplayer worlds and dedicated servers.",
+                    "是否允许在多人世界和专用服务器中触发子弹时间。"
+            )
+            .define("enableBulletTimeInMultiplayer", false);
+
+    private static final ModConfigSpec.BooleanValue BULLET_TIME_EXCEPT_PLAYER = BUILDER
+            .comment(
+                    "Whether to use TimeScaleLib's mode that slows everything except players. Requires TimeScaleLib; falls back to global time when unavailable.",
+                    "是否使用 TimeScaleLib 的“除了玩家以外时间减缓”模式。需要安装 TimeScaleLib；未安装时回退为全局减速。"
+            )
+            .define("bulletTimeExceptPlayer", false);
 
     private static final ModConfigSpec.BooleanValue ENABLE_BULLET_TIME_INVULNERABILITY = BUILDER
             .comment(
@@ -129,6 +143,8 @@ public final class Config {
     public static boolean enableExtremeCounterAttackArmorPiercing;
     public static boolean enableExtremeCounterGoldShader;
     public static boolean enableBulletTime;
+    public static boolean enableBulletTimeInMultiplayer;
+    public static boolean bulletTimeExceptPlayer;
     public static boolean enableBulletTimeInvulnerability;
     public static double bulletTimeSpeed;
     public static int bulletTimeDurationMillis;
@@ -153,6 +169,8 @@ public final class Config {
         enableExtremeCounterAttackArmorPiercing = ENABLE_EXTREME_COUNTER_ATTACK_ARMOR_PIERCING.get();
         enableExtremeCounterGoldShader = ENABLE_EXTREME_COUNTER_GOLD_SHADER.get();
         enableBulletTime = ENABLE_BULLET_TIME.get();
+        enableBulletTimeInMultiplayer = ENABLE_BULLET_TIME_IN_MULTIPLAYER.get();
+        bulletTimeExceptPlayer = BULLET_TIME_EXCEPT_PLAYER.get();
         enableBulletTimeInvulnerability = ENABLE_BULLET_TIME_INVULNERABILITY.get();
         bulletTimeSpeed = BULLET_TIME_SPEED.get();
         bulletTimeDurationMillis = BULLET_TIME_DURATION_MILLIS.get();
